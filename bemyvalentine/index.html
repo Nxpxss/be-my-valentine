@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Be My Valentine?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="img/catcute.png" class="w-100 h-100">
+    <!-- ฟอนต์ Quicksand และ Mitr: เรียบ คลีน แต่น่ารักมาก -->
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&family=Mitr:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-pink: #ff85a1;
+            --soft-pink: #fff0f3;
+            --lily-pink: #ffb7c5;
+        }
+        body {
+            font-family: 'Mitr', sans-serif;
+            overflow: hidden;
+            background-color: var(--soft-pink);
+            color: #4a4a4a;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+        .english-font {
+            font-family: 'Quicksand', sans-serif;
+        }
+        .floating-heart {
+            position: absolute;
+            pointer-events: none;
+            animation: float 6s linear infinite;
+            opacity: 0.5;
+        }
+        @keyframes float {
+            0% { transform: translateY(105vh) scale(1); opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+        #no-btn {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .card-appearance {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 182, 193, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        
+        /* Lily Game Styles */
+        .game-container {
+            position: relative;
+            width: 250px;
+            height: 300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .pot {
+            width: 100px;
+            height: 70px;
+            background: #d19d61;
+            border-radius: 0 0 20px 20px;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+        .pot::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 120px;
+            height: 15px;
+            background: #c08d54;
+            border-radius: 5px;
+        }
+        .flower-stem {
+            width: 6px;
+            height: 0px;
+            background: #a3b18a;
+            transition: height 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            bottom: -5px;
+            flex-shrink: 0;
+        }
+        .flower-head {
+            width: 180px;
+            height: 180px;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: scale(0) translateY(20px);
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            pointer-events: none;
+        }
+        /* บานเมื่อรดครั้งสุดท้ายเท่านั้น */
+        .bloom {
+            transform: scale(1) translateY(0) !important;
+            opacity: 1 !important;
+            bottom: calc(75px + var(--stem-height, 0px));
+            filter: drop-shadow(0 10px 20px rgba(255, 133, 161, 0.2));
+        }
+
+        .hidden-content {
+            display: none;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .fade-in {
+            display: block !important;
+            animation: fadeIn 0.8s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Watering Animation */
+        .water-drop {
+            position: absolute;
+            font-size: 24px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+        @keyframes drop {
+            0% { transform: translateY(-50px); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(50px); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <!-- Background Decoration -->
+    <div id="heart-container" class="fixed inset-0 overflow-hidden pointer-events-none"></div>
+
+    <!-- 1. Lily Planting Game Screen -->
+    <div id="game-screen" class="z-20 text-center transition-all duration-500">
+        <h2 class="text-2xl font-bold text-pink-500 mb-2">ดอกไม้ขาดน้ำไม่ได้ฉันใด เราก็ขาดคุณไม่ได้ฉันนั้น?</h2>
+        <p class="text-gray-400 text-sm mb-10 font-light">ช่วยรดน้ำให้หน่อยคับเตงง;-;;</p>
+        
+        <div id="plant-trigger" class="game-container cursor-pointer group">
+            <div id="flower-head" class="flower-head">
+                <!-- SVG Lily Graphic -->
+                <svg width="180" height="180" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g id="lily-petals">
+                        <path d="M100 100 Q130 160 100 190 Q70 160 100 100" fill="#FFD1DC" stroke="#FFB6C1" stroke-width="0.5"/>
+                        <path d="M100 100 Q160 130 190 100 Q160 70 100 100" fill="#FFD1DC" stroke="#FFB6C1" stroke-width="0.5"/>
+                        <path d="M100 100 Q40 130 10 100 Q40 70 100 100" fill="#FFD1DC" stroke="#FFB6C1" stroke-width="0.5"/>
+                        <path d="M100 100 Q130 40 100 10 Q70 40 100 100" fill="#FFD1DC" stroke="#FFB6C1" stroke-width="0.5"/>
+                        <path d="M100 100 Q160 160 180 170 Q140 180 100 100" fill="#FFB7C5" stroke="#FF85A1" stroke-width="1"/>
+                        <path d="M100 100 Q40 40 20 30 Q60 20 100 100" fill="#FFB7C5" stroke="#FF85A1" stroke-width="1"/>
+                        <path d="M100 100 Q160 40 180 30 Q140 20 100 100" fill="#FFB7C5" stroke="#FF85A1" stroke-width="1"/>
+                        <path d="M100 100 Q40 160 20 170 Q60 180 100 100" fill="#FFB7C5" stroke="#FF85A1" stroke-width="1"/>
+                        <circle cx="100" cy="85" r="1.5" fill="#D81B60" opacity="0.6"/>
+                        <circle cx="110" cy="95" r="1.5" fill="#D81B60" opacity="0.6"/>
+                        <circle cx="90" cy="95" r="1.5" fill="#D81B60" opacity="0.6"/>
+                        <circle cx="100" cy="110" r="1.5" fill="#D81B60" opacity="0.6"/>
+                    </g>
+                    <line x1="100" y1="100" x2="100" y2="70" stroke="#8D6E63" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="100" y1="100" x2="120" y2="80" stroke="#8D6E63" stroke-width="1.5" stroke-linecap="round"/>
+                    <line x1="100" y1="100" x2="80" y2="80" stroke="#8D6E63" stroke-width="1.5" stroke-linecap="round"/>
+                    <circle cx="100" cy="70" r="3" fill="#5D4037"/>
+                    <circle cx="120" cy="80" r="3" fill="#5D4037"/>
+                    <circle cx="80" cy="80" r="3" fill="#5D4037"/>
+                </svg>
+            </div>
+            <div id="flower-stem" class="flower-stem"></div>
+            <div class="pot"></div>
+        </div>
+        
+        <div class="mt-12 text-pink-300 text-xs font-bold tracking-widest uppercase">
+            Click to Water! (<span id="click-count">0</span>/5)
+        </div>
+    </div>
+
+    <!-- 2. Main Question Card (Initially Hidden) -->
+    <div id="main-card" class="card-appearance p-10 rounded-[2.5rem] shadow-xl text-center max-w-md w-full z-10 hidden-content transition-all duration-700">
+        <div id="question-content">
+            <div class="mb-8 flex justify-center">
+                <img src="img/cat1.jpg" 
+                     alt="Happy Cat GIF" 
+                     class="w-56 h-56 object-cover rounded-3xl"
+                     onerror="this.src='https://via.placeholder.com/200x200?text=❤️'">
+            </div>
+            <h1 class="text-4xl font-bold text-pink-500 mb-3 english-font">Hey you!</h1>
+            <p class="text-gray-500 mb-10 text-xl font-light">Will you be my Valentine?</p>
+            
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <button id="yes-btn" class="bg-pink-400 hover:bg-pink-500 text-white font-medium py-3 px-12 rounded-2xl text-xl shadow-lg shadow-pink-200 transform transition hover:-translate-y-1 active:scale-95">
+                    Yes Babyy!
+                </button>
+                <button id="no-btn" class="bg-gray-200 text-gray-500 font-light py-3 px-10 rounded-2xl text-lg hover:bg-gray-200 transition-colors">
+                    ไม่เอาอ่ะ
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Content Section -->
+        <div id="success-content" class="hidden opacity-0 transform scale-95 transition-all duration-700">
+            <div class="mb-8 flex justify-center">
+                <img src="https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExZnNqOXg4NzJrdGU2d2pibjBqaGt6aWt5b3htd2kyZDNhcjdocTN0ayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/wvYNSqBAMDVx8CEYkt/giphy.gif" 
+                     alt="Happy Cat GIF" 
+                     class="w-56 h-56 object-cover rounded-[2.5rem] shadow-md border-4 border-white"
+                     onerror="this.src='https://via.placeholder.com/200x200?text=❤️'">
+            </div>
+            
+            <h2 class="text-3xl font-bold text-pink-500 mb-4 english-font">Love you jub jub</h2>
+            <div class="bg-white/50 p-6 rounded-[2rem] border border-pink-50 mb-8 shadow-sm">
+                <p class="text-pink-600 leading-relaxed text-lg font-light">
+                    "หัวใจคุณน่ะ เราจะดูแลอย่างดีเลยย🤍"
+                </p>
+                <div class="mt-4 flex justify-center gap-2 text-xl">
+                    <span>✨</span><span>🧸</span><span>💕</span>
+                </div>
+            </div>
+            <p class="text-[10px] tracking-[0.2em] text-gray-400 uppercase font-bold english-font">February 14, 2026</p>
+        </div>
+    </div>
+
+    <script>
+        const gameScreen = document.getElementById('game-screen');
+        const plantTrigger = document.getElementById('plant-trigger');
+        const stem = document.getElementById('flower-stem');
+        const head = document.getElementById('flower-head');
+        const clickCountEl = document.getElementById('click-count');
+        const mainCard = document.getElementById('main-card');
+        const noBtn = document.getElementById('no-btn');
+        const yesBtn = document.getElementById('yes-btn');
+        const questionContent = document.getElementById('question-content');
+        const successContent = document.getElementById('success-content');
+        const heartContainer = document.getElementById('heart-container');
+
+        let clicks = 0;
+        const maxClicks = 5;
+
+        // 1. Planting Game Logic
+        plantTrigger.addEventListener('click', (e) => {
+            if (clicks >= maxClicks) return;
+
+            clicks++;
+            clickCountEl.innerText = clicks;
+            
+            // ก้านโตขึ้นเรื่อยๆ
+            const stemHeight = clicks * 15;
+            stem.style.height = stemHeight + 'px';
+            
+            createWaterDrop(e.clientX, e.clientY - 40);
+
+            // ดอกไม้จะบานเฉพาะครั้งสุดท้าย
+            if (clicks === maxClicks) {
+                head.style.setProperty('--stem-height', stemHeight + 'px');
+                head.classList.add('bloom');
+                
+                setTimeout(() => {
+                    confetti({
+                        particleCount: 80,
+                        spread: 80,
+                        origin: { y: 0.6 },
+                        colors: ['#FFB6C1', '#FFC0CB', '#FFFFFF', '#FF69B4'] 
+                    });
+                    
+                    setTimeout(() => {
+                        gameScreen.style.opacity = '0';
+                        gameScreen.style.transform = 'scale(0.8)';
+                        setTimeout(() => {
+                            gameScreen.style.display = 'none';
+                            mainCard.classList.add('fade-in');
+                        }, 500);
+                    }, 1200);
+                }, 800);
+            }
+        });
+
+        function createWaterDrop(x, y) {
+            const drop = document.createElement('div');
+            drop.className = 'water-drop';
+            drop.innerHTML = '💧';
+            drop.style.left = (x - 12) + 'px';
+            drop.style.top = y + 'px';
+            drop.style.animation = 'drop 0.6s forwards';
+            document.body.appendChild(drop);
+            setTimeout(() => drop.remove(), 600);
+        }
+
+        const moveButton = () => {
+            const maxX = window.innerWidth - noBtn.offsetWidth - 20;
+            const maxY = window.innerHeight - noBtn.offsetHeight - 20;
+            const randomX = Math.min(Math.max(20, Math.floor(Math.random() * maxX)), maxX);
+            const randomY = Math.min(Math.max(20, Math.floor(Math.random() * maxY)), maxY);
+            noBtn.style.position = 'fixed';
+            noBtn.style.left = randomX + 'px';
+            noBtn.style.top = randomY + 'px';
+            noBtn.style.zIndex = '100';
+        };
+
+        noBtn.addEventListener('mouseover', moveButton);
+        noBtn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            moveButton();
+        });
+
+        yesBtn.addEventListener('click', () => {
+            questionContent.style.opacity = '0';
+            questionContent.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                questionContent.classList.add('hidden');
+                successContent.classList.remove('hidden');
+                successContent.offsetHeight; 
+                successContent.style.opacity = '1';
+                successContent.style.transform = 'scale(1)';
+            }, 400);
+            
+            const duration = 8 * 1000;
+            const animationEnd = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ff85a1', '#ffffff'] });
+                confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ff85a1', '#ffffff'] });
+                if (Date.now() < animationEnd) requestAnimationFrame(frame);
+            }());
+        });
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('floating-heart');
+            heart.innerHTML = ['🤍', '💖', '✨', '🌷'][Math.floor(Math.random() * 4)];
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.fontSize = (Math.random() * 10 + 12) + 'px';
+            heart.style.animationDuration = (Math.random() * 3 + 5) + 's';
+            heartContainer.appendChild(heart);
+            setTimeout(() => heart.remove(), 6000);
+        }
+
+        setInterval(createHeart, 600);
+    </script>
+</body>
+</html>
